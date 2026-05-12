@@ -52,8 +52,8 @@ train_loader = torch.utils.data.DataLoader(
     train_dataset,
     batch_size=512,
     shuffle=True,
-    num_workers=4
-    pin_memory=True
+    num_workers=4,
+    pin_memory=True,
     persistent_workers=True
 )
 
