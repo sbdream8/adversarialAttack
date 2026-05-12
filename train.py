@@ -50,16 +50,18 @@ test_dataset = torchvision.datasets.CIFAR10(
 
 train_loader = torch.utils.data.DataLoader(
     train_dataset,
-    batch_size=128,
+    batch_size=512,
     shuffle=True,
-    num_workers=0
+    num_workers=4
+    pin_memory=True
+    persistent_workers=True
 )
 
 test_loader = torch.utils.data.DataLoader(
     test_dataset,
-    batch_size=128,
+    batch_size=512,
     shuffle=False,
-    num_workers=0
+    num_workers=4
 )
 
 def train(model, loader, optimizer, criterion):
