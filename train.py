@@ -112,6 +112,12 @@ optimizers = {
     for name, model in models.items()
 }
 
+scheduler = torch.optim.lr_scheduler.MultiStepLR(
+    optimizers,
+    milestones=[25, 40],
+    gamma=0.1
+)
+
 criterion = nn.CrossEntropyLoss()
 
 for name, model in models.items():
