@@ -9,9 +9,11 @@ import random
 from tqdm import tqdm
 from models.resnet import ResNet18
 from models.cnn import SimpleCNN
+import os
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Device:", device)
+os.makedirs("./checkpoints", exist_ok=True)
 
 seed = 42
 random.seed(seed)
