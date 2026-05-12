@@ -35,16 +35,16 @@ test_transform = transforms.Compose([
 ])
 
 train_dataset = torchvision.datasets.CIFAR10(
-    root = r"C:\Users\IDEA\Downloads",
+    root="./data",
     train=True,
-    download=False,
+    download=True,
     transform=train_transform
 )
 
 test_dataset = torchvision.datasets.CIFAR10(
-    root = r"C:\Users\IDEA\Downloads",
+    root="./data",
     train=False,
-    download=False,
+    download=True,
     transform=test_transform
 )
 
