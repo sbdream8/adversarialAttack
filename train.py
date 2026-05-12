@@ -128,20 +128,59 @@ schedulers = {
 criterion = nn.CrossEntropyLoss()
 
 for name, model in models.items():
+
     optimizer = optimizers[name]
+    scheduler = schedulers[name]
+
+    checkpoint_path = f"./checkpoints/{name}_latest.pth"
+
+    start_epoch = 0
+    best_acc = 0
+
+    #Resume checkpoint
+    if os.path.exists(checkpoint_path):
+
+        print(f"\nLoading checkpoint for {name}...")
+
+        checkpoint = torch.load(checkpoint_path)
+
+        model.load_state_dict(
+            checkpoint["model_state_dict"]
+        )
+
+        optimizer.load_state_dict(
+            checkpoint["optimizer_state_dict"]
+        )
+
+        scheduler.load_state_dict(
+            checkpoint["scheduler_state_dict"]
+        )
+
+        start_epoch = checkpoint["epoch"] + 1
+        best_acc = checkpoint["best_acc"]
+
+        print(
+            f"Resume from epoch {start_epoch}"
+        )
+
     print(f"\nTraining {name}")
 
-    for epoch in range(EPOCHS):
+    for epoch in range(start_epoch, EPOCHS):
+
         train_loss = train(
             model,
             train_loader,
             optimizer,
             criterion
         )
+
         test_acc = evaluate(
             model,
             test_loader
         )
+
+        scheduler.step()
+
         print(
             f"{name} | "
             f"Epoch [{epoch+1}/{EPOCHS}] "
@@ -149,7 +188,26 @@ for name, model in models.items():
             f"Acc: {test_acc:.2f}%"
         )
 
-    torch.save(
-        model.state_dict(),
-        f"./checkpoints/{name}.pth"
-    )
+        #Save latest checkpoint
+        torch.save({
+            "epoch": epoch,
+            "best_acc": best_acc,
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            "scheduler_state_dict": scheduler.state_dict()
+        }, checkpoint_path)
+
+        #Save best model
+        if test_acc > best_acc:
+
+            best_acc = test_acc
+
+            torch.save(
+                model.state_dict(),
+                f"./checkpoints/{name}_best.pth"
+            )
+
+            print(
+                f"Best model saved! "
+                f"Acc: {best_acc:.2f}%"
+            )
