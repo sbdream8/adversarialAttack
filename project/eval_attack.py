@@ -1,7 +1,5 @@
 from attacks.fgsm import fgsm_attack
 from attacks.pgd import pgd_attack
-from models.resnet import ResNet18
-from models.cnn import SimpleCNN
 from train import device, test_loader, models, CHECKPOINT_DIR
 import torch
 
@@ -13,13 +11,7 @@ def evaluate_fgsm(model, loader, epsilon):
     for images, labels in loader:
         images = images.to(device)
         labels = labels.to(device)
-        adv_images = fgsm_attack(
-            model,
-            images,
-            labels,
-            epsilon,
-            device
-            )
+        adv_images = fgsm_attack(model, images, labels, epsilon, device=device)
 
         outputs = model(adv_images)
         preds = outputs.argmax(dim=1)
@@ -36,13 +28,7 @@ def evaluate_pgd(model, loader, epsilon):
     for images, labels in loader:
         images = images.to(device)
         labels = labels.to(device)
-        adv_images = pgd_attack(
-            model,
-            images,
-            labels,
-            epsilon,
-            device
-            )
+        adv_images = pgd_attack(model, images, labels, epsilon, device=device)
 
         outputs = model(adv_images)
         preds = outputs.argmax(dim=1)
@@ -60,11 +46,7 @@ for name, model in models.items():
             f"{CHECKPOINT_DIR}/{name}_best.pth"
         )
     )
-    fgsm_acc = evaluate_fgsm(
-        model,
-        test_loader,
-        epsilon
-    )
+    fgsm_acc = evaluate_fgsm(model, test_loader, epsilon)
     print(
         f"{name} FGSM Accuracy: "
         f"{fgsm_acc:.2f}%"
@@ -78,11 +60,7 @@ for name, model in models.items():
             f"{CHECKPOINT_DIR}/{name}_best.pth"
         )
     )
-    pgd_acc = evaluate_pgd(
-        model,
-        test_loader,
-        epsilon
-    )
+    pgd_acc = evaluate_pgd(model, test_loader, epsilon)
     print(
         f"{name} PGD Accuracy: "
         f"{pgd_acc:.2f}%"
