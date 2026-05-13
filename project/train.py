@@ -21,6 +21,7 @@ np.random.seed(seed)
 torch.manual_seed(seed)
 torch.cuda.manual_seed_all(seed)
 
+#colab session 끊어질 때마다 모델이 날아가는 것을 방지하기 위해 구글 드라이브에 체크포인트 저장
 CHECKPOINT_DIR = "/content/drive/MyDrive/adversarial_checkpoints"
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
