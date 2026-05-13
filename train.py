@@ -21,6 +21,9 @@ np.random.seed(seed)
 torch.manual_seed(seed)
 torch.cuda.manual_seed_all(seed)
 
+CHECKPOINT_DIR = "/content/drive/MyDrive/adversarial_checkpoints"
+os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+
 cifar10_mean = (0.4914, 0.4822, 0.4465)
 cifar10_std = (0.2470, 0.2435, 0.2616)
 
@@ -132,7 +135,7 @@ for name, model in models.items():
     optimizer = optimizers[name]
     scheduler = schedulers[name]
 
-    checkpoint_path = f"./checkpoints/{name}_latest.pth"
+    checkpoint_path = f"{CHECKPOINT_DIR}/{name}_latest.pth"
 
     start_epoch = 0
     best_acc = 0
@@ -162,6 +165,7 @@ for name, model in models.items():
         print(
             f"Resume from epoch {start_epoch}"
         )
+        #pause하고 다시 시작하니까 실제로 멈췄던 epoch부터 시작하네.
 
     print(f"\nTraining {name}")
 
@@ -204,9 +208,8 @@ for name, model in models.items():
 
             torch.save(
                 model.state_dict(),
-                f"./checkpoints/{name}_best.pth"
-            )
-
+                f"{CHECKPOINT_DIR}/{name}_best.pth"
+                )
             print(
                 f"Best model saved! "
                 f"Acc: {best_acc:.2f}%"
