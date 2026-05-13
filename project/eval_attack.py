@@ -1,3 +1,5 @@
+import sys
+sys.path.append("/content/adversarialAttack/project")
 from project.attacks.fgsm import fgsm_attack
 from project.attacks.pgd import pgd_attack
 from project.train import device, test_loader, models, CHECKPOINT_DIR
