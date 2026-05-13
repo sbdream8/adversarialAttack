@@ -1,8 +1,8 @@
-import sys
-sys.path.append("/content/adversarialAttack/project")
-from project.attacks.fgsm import fgsm_attack
-from project.attacks.pgd import pgd_attack
-from project.train import device, test_loader, models, CHECKPOINT_DIR
+from attacks.fgsm import fgsm_attack
+from attacks.pgd import pgd_attack
+from models.resnet import ResNet18
+from models.cnn import SimpleCNN
+from train import device, test_loader, models, CHECKPOINT_DIR
 import torch
 
 def evaluate_fgsm(model, loader, epsilon):
