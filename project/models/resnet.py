@@ -4,15 +4,8 @@ import torch.nn as nn
 def ResNet18():
     model = resnet18(num_classes=10)
 
-    model.conv1 = nn.Conv2d(
-        3, 64,
-        kernel_size=3,
-        stride=1,
-        padding=1,
-        bias=False
-    )
+    model.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
 
     model.maxpool = nn.Identity()
 
     return model
-
