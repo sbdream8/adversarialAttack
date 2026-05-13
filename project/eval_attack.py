@@ -1,9 +1,9 @@
+import sys
+sys.path.append("/content/adversarialAttack/project")
 from attacks.fgsm import fgsm_attack
 from attacks.pgd import pgd_attack
 from project.train import device, test_loader, models, CHECKPOINT_DIR
 import torch
-import sys
-sys.path.append("/content/adversarialAttack/project")
 
 def evaluate_fgsm(model, loader, epsilon):
     model.eval()
