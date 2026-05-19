@@ -1,9 +1,28 @@
+import argparse
+
 import torch
 
-from train import (DEVICE, MODEL_DICT, CHECKPOINT_DIR, get_dataloaders)
+from train import (
+    DEVICE,
+    MODEL_DICT,
+    CHECKPOINT_DIR,
+    get_dataloaders
+)
+
 from attacks.fgsm import fgsm_attack
 from attacks.pgd import pgd_attack
 
+
+# Argument Parser
+parser = argparse.ArgumentParser(description="Evaluate Robustness")
+parser.add_argument("--model", type=str, default="resnet18", choices=["resnet18", "cnn"])
+parser.add_argument("--epsilon", type=float, default=8/255)
+
+args = parser.parse_args()
+print(args)
+
+
+# Attack Evaluation
 def evaluate_attack(model, loader, attack_fn):
 
     model.eval()
@@ -22,36 +41,40 @@ def evaluate_attack(model, loader, attack_fn):
 
     return 100 * correct / total
 
+
+# Main
 def main():
 
-    _, test_loader = get_dataloaders()
-    epsilon = 0.03
+    _, test_loader = (get_dataloaders())
+
+    model = MODEL_DICT[args.model]().to(DEVICE)
+
+    checkpoint_path = (
+        CHECKPOINT_DIR /
+        f"{args.model}_best.pth"
+    )
+
+    model.load_state_dict(torch.load(checkpoint_path,map_location=DEVICE))
 
     attacks = {
+
         "FGSM": lambda model, x, y:
-            fgsm_attack(model, x, y, epsilon=epsilon, device=DEVICE),
+            fgsm_attack(model, x, y, epsilon=args.epsilon, device=DEVICE),
 
         "PGD": lambda model, x, y:
-            pgd_attack(model, x, y, epsilon=epsilon, alpha=0.007, iters=10, device=DEVICE)
+            pgd_attack(model, x, y, epsilon=args.epsilon, alpha=2/255, iters=10, device=DEVICE)
     }
 
-    for model_name, model_class in MODEL_DICT.items():
+    print(f"\nEvaluating {args.model}")
 
-        print(f"\nEvaluating {model_name}")
-        model = model_class().to(DEVICE)
-        checkpoint_path = (CHECKPOINT_DIR / f"{model_name}_best.pth")
+    for attack_name, attack_fn in attacks.items():
 
-        model.load_state_dict(
-            torch.load(checkpoint_path, map_location=DEVICE)
+        acc = evaluate_attack(model, test_loader, attack_fn)
+        print(
+            f"{attack_name} Accuracy: "
+            f"{acc:.2f}%"
         )
 
-        for attack_name, attack_fn in attacks.items():
-
-            acc = evaluate_attack(model, test_loader, attack_fn)
-            print(
-                f"{attack_name} Accuracy: "
-                f"{acc:.2f}%"
-            )
 
 if __name__ == "__main__":
     main()
