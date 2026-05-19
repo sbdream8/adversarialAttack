@@ -1,216 +1,279 @@
+import os
+import random
+from pathlib import Path
+
+import argparse
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as transforms
-import numpy as np
-import random
+
 from tqdm import tqdm
+
 from models.resnet import ResNet18
 from models.cnn import SimpleCNN
-import os
+from attacks.fgsm import fgsm_attack
+from attacks.pgd import pgd_attack
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("Device:", device)
-os.makedirs("./checkpoints", exist_ok=True)
+# Argument Parser
+parser = argparse.ArgumentParser()
 
-seed = 42
-random.seed(seed)
-np.random.seed(seed)
-torch.manual_seed(seed)
-torch.cuda.manual_seed_all(seed)
+parser.add_argument("--model", type=str, default="resnet18", choices=["resnet18", "cnn"])
 
-#colab session 끊어질 때마다 모델이 날아가는 것을 방지하기 위해 구글 드라이브에 체크포인트 저장
-CHECKPOINT_DIR = "/content/drive/MyDrive/adversarial_checkpoints"
-os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+parser.add_argument("--epochs", type=int, default=50)
 
+parser.add_argument("--batch_size", type=int, default=512)
+
+parser.add_argument("--lr", type=float, default=0.1)
+
+parser.add_argument("--seed", type=int, default=42)
+
+parser.add_argument("--adv_train", action="store_true", help="Use adversarial training")
+
+parser.add_argument("--attack", type=str, default="pgd", choices=["fgsm", "pgd"])
+
+parser.add_argument("--epsilon", type=float, default=8/255)
+
+parser.add_argument("--alpha", type=float, default=2/255)
+
+parser.add_argument("--attack_steps", type=int, default=10)
+
+args = parser.parse_args()
+
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+torch.backends.cudnn.benchmark = True
+
+def set_seed(seed):
+
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+
+
+# Checkpoint Directory
+RUN_NAME = (
+    f"{args.model}"
+    f"_adv-{args.adv_train}"
+    f"_attack-{args.attack}"
+    f"_eps-{args.epsilon}"
+    f"_seed-{args.seed}"
+)
+
+CHECKPOINT_DIR = Path("./checkpoints") / RUN_NAME
+
+CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
+
+#Data Loaders
 cifar10_mean = (0.4914, 0.4822, 0.4465)
 cifar10_std = (0.2470, 0.2435, 0.2616)
 
-train_transform = transforms.Compose([
-    transforms.RandomCrop(32, padding=4),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize(cifar10_mean, cifar10_std)
-])
+def get_dataloaders():
 
-test_transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize(cifar10_mean, cifar10_std)
-])
+    train_transform = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            cifar10_mean,
+            cifar10_std
+        )
+    ])
 
-train_dataset = torchvision.datasets.CIFAR10(
-    root="./data",
-    train=True,
-    download=True,
-    transform=train_transform
-)
+    test_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(
+            cifar10_mean,
+            cifar10_std
+        )
+    ])
 
-test_dataset = torchvision.datasets.CIFAR10(
-    root="./data",
-    train=False,
-    download=True,
-    transform=test_transform
-)
+    train_dataset = torchvision.datasets.CIFAR10(
+        root="./data",
+        train=True,
+        download=True,
+        transform=train_transform
+    )
 
-train_loader = torch.utils.data.DataLoader(
-    train_dataset,
-    batch_size=512,
-    shuffle=True,
-    num_workers=2,
-    pin_memory=True,
-    persistent_workers=True
-)
+    test_dataset = torchvision.datasets.CIFAR10(
+        root="./data",
+        train=False,
+        download=True,
+        transform=test_transform
+    )
 
-test_loader = torch.utils.data.DataLoader(
-    test_dataset,
-    batch_size=512,
-    shuffle=False,
-    num_workers=2
-)
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=2,
+        pin_memory=True
+    )
 
-def train(model, loader, optimizer, criterion):
+    test_loader = torch.utils.data.DataLoader(
+        test_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=2
+    )
+
+    return train_loader, test_loader
+
+MODEL_DICT = {
+    "resnet18": ResNet18,
+    "cnn": SimpleCNN
+}
+
+
+def get_attack(model):
+
+    if args.attack == "fgsm":
+
+        return fgsm_attack(model=model, epsilon=args.epsilon, device=DEVICE)
+
+    elif args.attack == "pgd":
+
+        return pgd_attack(model=model, epsilon=args.epsilon, alpha=args.alpha, steps=args.attack_steps, device=DEVICE)
+
+
+# Train
+def train_one_epoch(model, loader, optimizer, criterion, attack=None):
+
     model.train()
     total_loss = 0
 
     for images, labels in tqdm(loader):
-        images = images.to(device)
-        labels = labels.to(device)
-        optimizer.zero_grad()
-        outputs = model(images)
+
+        images = images.to(DEVICE)
+        labels = labels.to(DEVICE)
+
+        # Adversarial Training
+        if attack is not None:
+
+            adv_images = attack.perturb(images, labels)
+            outputs = model(adv_images)
+
+        else:
+            outputs = model(images)
+
         loss = criterion(outputs, labels)
+        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
+
     return total_loss / len(loader)
 
+
+# Evaluation
 def evaluate(model, loader):
+
     model.eval()
     correct = 0
     total = 0
 
     with torch.no_grad():
+
         for images, labels in loader:
-            images = images.to(device)
-            labels = labels.to(device)
+
+            images = images.to(DEVICE)
+            labels = labels.to(DEVICE)
             outputs = model(images)
             preds = outputs.argmax(dim=1)
             correct += (preds == labels).sum().item()
             total += labels.size(0)
+
     return 100 * correct / total
 
 
-EPOCHS = 50
-LR = 0.1
+# Main
+def main():
 
-#나중에 attack할때 헷갈릴 수 있어서 model1, model2 하는것보단 dictionary 형태 추천
-models = {
-    "ResNet18": ResNet18().to(device),
-    "SimpleCNN": SimpleCNN().to(device)
-}
+    print("Device:", DEVICE)
+    set_seed(args.seed)
+    train_loader, test_loader = (get_dataloaders())
 
-optimizers = {
-    name: optim.SGD(
-        model.parameters(),
-        lr=LR,
-        momentum=0.9,
-        weight_decay=5e-4
-    )
-    for name, model in models.items()
-}
+    model = MODEL_DICT[args.model]().to(DEVICE)
+    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
+    scheduler = (torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[25, 40], gamma=0.1))
+    criterion = nn.CrossEntropyLoss()
+    attack = None
 
-schedulers = {
-    name: torch.optim.lr_scheduler.MultiStepLR(
-        optimizer,
-        milestones=[25, 40],
-        gamma=0.1
-    )
-    for name, optimizer in optimizers.items()
-}
+    if args.adv_train:
 
-criterion = nn.CrossEntropyLoss()
+        attack = get_attack(model)
+        print(
+            f"Adversarial Training: "
+            f"{args.attack}"
+        )
 
-for name, model in models.items():
-
-    optimizer = optimizers[name]
-    scheduler = schedulers[name]
-
-    checkpoint_path = f"{CHECKPOINT_DIR}/{name}_latest.pth"
-
-    start_epoch = 0
     best_acc = 0
 
-    #Resume checkpoint
-    if os.path.exists(checkpoint_path):
+    latest_checkpoint_path = (CHECKPOINT_DIR / "latest.pth")
 
-        print(f"\nLoading checkpoint for {name}...")
+    best_checkpoint_path = (CHECKPOINT_DIR / "best.pth")
 
-        checkpoint = torch.load(checkpoint_path)
 
-        model.load_state_dict(
-            checkpoint["model_state_dict"]
-        )
+    # Resume Checkpoint
+    start_epoch = 0
 
-        optimizer.load_state_dict(
-            checkpoint["optimizer_state_dict"]
-        )
+    if latest_checkpoint_path.exists():
 
-        scheduler.load_state_dict(
-            checkpoint["scheduler_state_dict"]
-        )
+        checkpoint = torch.load(latest_checkpoint_path, map_location=DEVICE)
 
-        start_epoch = checkpoint["epoch"] + 1
+        model.load_state_dict(checkpoint["model_state_dict"])
+
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+
+        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+
         best_acc = checkpoint["best_acc"]
 
+        start_epoch = (checkpoint["epoch"] + 1)
+
         print(
-            f"Resume from epoch {start_epoch}"
+            f"Resume from epoch "
+            f"{start_epoch}"
         )
 
-    print(f"\nTraining {name}")
+    # Training Loop
+    for epoch in range(start_epoch, args.epochs):
 
-    for epoch in range(start_epoch, EPOCHS):
-
-        train_loss = train(
-            model,
-            train_loader,
-            optimizer,
-            criterion
-        )
-
-        test_acc = evaluate(
-            model,
-            test_loader
-        )
-
+        train_loss = train_one_epoch(model, train_loader, optimizer, criterion, attack)
+        test_acc = evaluate(model, test_loader)
         scheduler.step()
 
         print(
-            f"{name} | "
-            f"Epoch [{epoch+1}/{EPOCHS}] "
-            f"Loss: {train_loss:.4f} "
+            f"Epoch [{epoch+1}/{args.epochs}] | "
+            f"Loss: {train_loss:.4f} | "
             f"Acc: {test_acc:.2f}%"
         )
 
-        #Save latest checkpoint
+        # Save Latest
         torch.save({
             "epoch": epoch,
             "best_acc": best_acc,
             "model_state_dict": model.state_dict(),
             "optimizer_state_dict": optimizer.state_dict(),
             "scheduler_state_dict": scheduler.state_dict()
-        }, checkpoint_path)
+        }, latest_checkpoint_path)
 
-        #Save best model
+        # Save Best
         if test_acc > best_acc:
 
             best_acc = test_acc
+            torch.save(model.state_dict(), best_checkpoint_path)
 
-            torch.save(
-                model.state_dict(),
-                f"{CHECKPOINT_DIR}/{name}_best.pth"
-                )
             print(
-                f"Best model saved! "
+                f"Best Model Saved! "
                 f"Acc: {best_acc:.2f}%"
             )
+
+
+if __name__ == "__main__":
+    main()
