@@ -166,7 +166,6 @@ for name, model in models.items():
         print(
             f"Resume from epoch {start_epoch}"
         )
-        #pause하고 다시 시작하니까 실제로 멈췄던 epoch부터 시작하네.
 
     print(f"\nTraining {name}")
 
