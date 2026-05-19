@@ -1,35 +1,21 @@
 import torch
 import torch.nn.functional as F
 
-class pgd_attack:
+def pgd_attack(model, images, labels, epsilon, alpha, iters, device):
 
-    def __init__(self, model, epsilon, alpha, steps, device):
+    images = images.clone().detach().to(device)
+    labels = labels.to(device)
+    ori_images = images.clone().detach()
 
-        self.model = model
-        self.epsilon = epsilon
-        self.alpha = alpha
-        self.steps = steps
-        self.device = device
+    for _ in range(iters):
 
-    def perturb(self, images, labels):
+        images.requires_grad = True
+        outputs = model(images)
+        loss = F.cross_entropy(outputs, labels)
+        model.zero_grad()
+        loss.backward()
+        adv_images = (images + alpha * images.grad.sign())
+        eta = torch.clamp(adv_images - ori_images, min=-epsilon, max=epsilon)
+        images = torch.clamp(ori_images + eta, 0, 1).detach()
 
-        images = (images.clone().detach().to(self.device))
-        labels = labels.to(self.device)
-        original_images = (images.clone().detach())
-
-        # Random Start
-        images = (images + torch.empty_like(images).uniform_(-self.epsilon,self.epsilon))
-
-        for _ in range(self.steps):
-
-            images.requires_grad = True
-            outputs = self.model(images)
-            loss = F.cross_entropy(outputs, labels)
-            self.model.zero_grad()
-            loss.backward()
-            grad = images.grad.data
-            adv_images = (images + self.alpha * grad.sign())
-            eta = torch.clamp(adv_images - original_images, min=-self.epsilon, max=self.epsilon)
-            images = (original_images + eta).detach()
-
-        return images
+    return images
