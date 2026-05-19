@@ -2,13 +2,7 @@ import argparse
 
 import torch
 
-from train import (
-    DEVICE,
-    MODEL_DICT,
-    CHECKPOINT_DIR,
-    get_dataloaders
-)
-
+from train import (DEVICE, MODEL_DICT, CHECKPOINT_DIR, get_dataloaders)
 from attacks.fgsm import fgsm_attack
 from attacks.pgd import pgd_attack
 
