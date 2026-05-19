@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-class PGDAttack:
+class pgd_attack:
 
     def __init__(self, model, epsilon, alpha, steps, device):
 
