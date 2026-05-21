@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from torchgen import model
 
 
-def trades_loss(model, x_natural, y, optimizer, step_size=2/255, epsilon=8/255, perturb_steps=10, beta=6.0):
+def trades_loss(model, x_natural, y, optimizer, step_size=2/255, epsilon=8/255, perturb_steps=5, beta=6.0):
 
     criterion_kl = torch.nn.KLDivLoss(reduction="batchmean")
     model.eval()
@@ -30,9 +30,5 @@ def trades_loss(model, x_natural, y, optimizer, step_size=2/255, epsilon=8/255, 
     loss_natural = F.cross_entropy(logits, y)
     loss_robust = criterion_kl(F.log_softmax(model(x_adv), dim=1), F.softmax(model(x_natural), dim=1))
     loss = loss_natural + beta * loss_robust
-
-    print("loss_natural nan:", torch.isnan(loss_natural))
-    print("loss_robust nan:", torch.isnan(loss_robust))
-    print("total loss nan:", torch.isnan(loss))
 
     return loss
