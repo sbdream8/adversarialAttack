@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+from torchgen import model
 
 
 def trades_loss(model, x_natural, y, optimizer, step_size=2/255, epsilon=8/255, perturb_steps=10, beta=6.0):
@@ -8,18 +9,20 @@ def trades_loss(model, x_natural, y, optimizer, step_size=2/255, epsilon=8/255, 
     model.eval()
     x_adv = x_natural.detach() + 0.001 * torch.randn_like(x_natural)
 
+    with torch.no_grad():
+        natural_probs = F.softmax(model(x_natural), dim=1)
+
     for _ in range(perturb_steps):
 
         x_adv.requires_grad_()
 
         with torch.enable_grad():
 
-            loss_kl = criterion_kl(F.log_softmax(model(x_adv), dim=1), F.softmax(model(x_natural), dim=1))
+            loss_kl = criterion_kl(F.log_softmax(model(x_adv), dim=1), natural_probs)
 
         grad = torch.autograd.grad(loss_kl, [x_adv])[0]
         x_adv = x_adv.detach() + step_size * torch.sign(grad)
         x_adv = torch.min(torch.max(x_adv, x_natural - epsilon), x_natural + epsilon)
-        x_adv = torch.clamp(x_adv, 0.0, 1.0)
 
     model.train()
     optimizer.zero_grad()
