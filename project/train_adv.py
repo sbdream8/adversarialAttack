@@ -7,6 +7,8 @@ from train import (DEVICE, MODEL_DICT, get_dataloaders, CHECKPOINT_DIR)
 from defenses.trades import trades_loss
 from defenses.arow import arow_loss
 
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("Device:", DEVICE)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model", type=str, default="resnet18", choices=["resnet18", "cnn"])
