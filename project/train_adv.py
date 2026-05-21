@@ -19,7 +19,7 @@ parser.add_argument("--model", type=str, default="resnet18", choices=["resnet18"
 parser.add_argument("--defense", type=str, default="trades", choices=["trades", "arow"])
 parser.add_argument("--epochs", type=int, default=50)
 parser.add_argument("--batch_size", type=int, default=512)
-parser.add_argument("--lr", type=float, default=0.1)
+parser.add_argument("--lr", type=float, default=0.01)
 args = parser.parse_args()
 print(args)
 
