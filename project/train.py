@@ -1,3 +1,5 @@
+# Train Script for CIFAR10 Classification using CNN / ResNet
+
 import random
 from pathlib import Path
 import argparse

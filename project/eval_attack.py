@@ -1,5 +1,6 @@
-import argparse
+# Evaluate Adversarial Attacks on CIFAR10 Models
 
+import argparse
 import torch
 
 from train import (DEVICE, MODEL_DICT, CHECKPOINT_DIR, get_dataloaders)
