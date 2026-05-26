@@ -42,8 +42,7 @@ def set_seed(seed):
 
 
 # Checkpoint Directory
-CHECKPOINT_DIR = Path("./checkpoints")
-
+CHECKPOINT_DIR = Path("/content/drive/MyDrive/adversarial_checkpoints")
 CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
 
 cifar10_mean = (0.4914, 0.4822, 0.4465)
