@@ -50,8 +50,8 @@ cifar10_mean = (0.4914, 0.4822, 0.4465)
 cifar10_std = (0.2470, 0.2435, 0.2616)
 
 
-def get_dataloaders():
-
+def get_dataloaders(batch_size):
+    
     train_transform = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
@@ -66,8 +66,8 @@ def get_dataloaders():
 
     train_dataset = torchvision.datasets.CIFAR10(root="./data", train=True, download=True, transform=train_transform)
     test_dataset = torchvision.datasets.CIFAR10(root="./data", train=False, download=True, transform=test_transform)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=True)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=2)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
 
     return train_loader, test_loader
 
@@ -123,7 +123,7 @@ def evaluate(model, loader):
 def main():
 
     set_seed(args.seed)
-    train_loader, test_loader = (get_dataloaders())
+    train_loader, test_loader = get_dataloaders(args.batch_size)
     model = MODEL_DICT[args.model]().to(DEVICE)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
     scheduler = (torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[25, 40], gamma=0.1))
