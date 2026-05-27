@@ -14,25 +14,22 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Device:", DEVICE)
 
 # Argument Parser
-def get_args():
+parser = argparse.ArgumentParser(description="Adversarial Training")
+parser.add_argument("--model", type=str, default="resnet18", choices=["resnet18", "cnn"])
+parser.add_argument("--defense", type=str, default="trades", choices=["trades", "arow"])
+parser.add_argument("--epochs", type=int, default=50)
+parser.add_argument("--batch_size", type=int, default=512)
+parser.add_argument("--lr", type=float, default=0.01)
+parser.add_argument("--seed", type=int, default=42)
 
-    parser = argparse.ArgumentParser(description="Train CNN / ResNet on CIFAR10")
-    parser.add_argument("--model", type=str, default="resnet18", choices=["resnet18", "cnn"])
-    parser.add_argument("--epochs", type=int, default=50)
-    parser.add_argument("--batch_size", type=int, default=512)
-    parser.add_argument("--lr", type=float, default=0.1)
-    parser.add_argument("--seed", type=int, default=42)
-
-    return parser.parse_args()
+args = parser.parse_args()
+print(args)
 
 
 # Main
 def main():
 
-    args = get_args()
-    print(args)
     set_seed(args.seed)
-
     train_loader, test_loader = get_dataloaders(args.batch_size)
     model = MODEL_DICT[args.model]().to(DEVICE)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
