@@ -36,7 +36,7 @@ def evaluate_attack(model, loader, attack_fn):
 
 def main():
 
-    _, test_loader = get_dataloaders()
+    _, _, test_loader = get_dataloaders(args.batch_size)
     model = MODEL_DICT[args.model]().to(DEVICE)
 
     checkpoint_path = (

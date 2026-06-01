@@ -30,7 +30,7 @@ print(args)
 def main():
 
     set_seed(args.seed)
-    train_loader, test_loader = get_dataloaders(args.batch_size)
+    train_loader, val_loader, test_loader = get_dataloaders(args.batch_size)
     model = MODEL_DICT[args.model]().to(DEVICE)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[25, 40], gamma=0.1)
@@ -104,14 +104,15 @@ def main():
         scheduler.step()
 
         # Clean Accuracy
-        clean_acc = evaluate(model, test_loader)
-        avg_loss = (total_loss / len(train_loader))
-
+        # Validation Accuracy
+        val_acc = evaluate(model, val_loader)
+        avg_loss = total_loss / len(train_loader)
+        
         print(
             f"\nEpoch [{epoch+1}/{args.epochs}] | "
             f"Loss: {avg_loss:.4f} | "
-            f"Clean Acc: {clean_acc:.2f}%"
-        )
+            f"Val Acc: {val_acc:.2f}%"
+            )
 
         # Save Latest Checkpoint
         torch.save({
@@ -125,9 +126,9 @@ def main():
 
 
         # Save Best Model
-        if clean_acc > best_acc:
+        if val_acc > best_acc:
 
-            best_acc = clean_acc
+            best_acc = val_acc
             torch.save(model.state_dict(), best_checkpoint_path)
 
             print(
@@ -135,6 +136,15 @@ def main():
                 f"Acc: {best_acc:.2f}%"
             )
 
+    print("\nLoading best model...")
+    
+    model.load_state_dict(torch.load(best_checkpoint_path, map_location=DEVICE))
+    test_acc = evaluate(model, test_loader)
+    
+    print(
+        f"\nFinal Test Accuracy: "
+        f"{test_acc:.2f}%"
+        )
 
 if __name__ == "__main__":
     main()
