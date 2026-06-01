@@ -11,6 +11,7 @@ from attacks.pgd import pgd_attack
 parser = argparse.ArgumentParser(description="Evaluate Robustness")
 parser.add_argument("--model", type=str, default="resnet18", choices=["resnet18", "cnn"])
 parser.add_argument("--epsilon", type=float, default=8/255)
+parser.add_argument("--batch_size", type=int, default=512)
 
 args = parser.parse_args()
 print(args)
@@ -39,7 +40,7 @@ def evaluate_attack(model, loader, attack_fn):
 # Main
 def main():
 
-    _, test_loader = (get_dataloaders())
+    _, test_loader = get_dataloaders(args.batch_size)
 
     model = MODEL_DICT[args.model]().to(DEVICE)
 
