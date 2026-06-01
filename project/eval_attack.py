@@ -1,12 +1,11 @@
-# Evaluate Adversarial Attacks on CIFAR10 Models
+# Evaluate Adversarial Attacks on Clean Models (without defenses)
 
 import argparse
 import torch
 
-from project.train import (DEVICE, MODEL_DICT, CHECKPOINT_DIR, get_dataloaders)
+from train import (DEVICE, MODEL_DICT, CHECKPOINT_DIR, get_dataloaders)
 from attacks.fgsm import fgsm_attack
 from attacks.pgd import pgd_attack
-
 
 # Argument Parser
 parser = argparse.ArgumentParser(description="Evaluate Robustness")

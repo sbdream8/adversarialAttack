@@ -1,16 +1,17 @@
 # Evaluate Defenses for Adversarially Trained Models
+# Attack TRADES / AROW trained models with FGSM / PGD attacks and evaluate robust accuracy: How well do the defenses hold up against strong attacks?
 
 import argparse
 import torch
 
-from project.train import (DEVICE, MODEL_DICT, get_dataloaders, CHECKPOINT_DIR)
+from train import (DEVICE, MODEL_DICT, get_dataloaders, CHECKPOINT_DIR)
 from attacks.fgsm import fgsm_attack
 from attacks.pgd import pgd_attack
 
 # Argument Parser
 parser = argparse.ArgumentParser(description="Evaluate Defenses")
 parser.add_argument("--model", type=str, default="resnet18", choices=["resnet18", "cnn"])
-parser.add_argument("--defense", type=str, default="trades", choices=["trades   ", "arow"])
+parser.add_argument("--defense", type=str, default="trades", choices=["trades", "arow"])
 args = parser.parse_args()
 
 def evaluate_attack(model, loader, attack_fn):
@@ -43,9 +44,7 @@ def main():
         f"{args.model}_{args.defense}.pth"
     )
 
-    model.load_state_dict(
-        torch.load(checkpoint_path, map_location=DEVICE)
-    )
+    model.load_state_dict(torch.load(checkpoint_path, map_location=DEVICE))
 
     attacks = {
 

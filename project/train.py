@@ -1,4 +1,4 @@
-# Train Script for CIFAR10 Classification using CNN / ResNet
+# Train for CIFAR10 Classification using CNN / ResNet (Clean Models)
 
 import random
 from pathlib import Path

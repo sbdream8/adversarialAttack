@@ -1,4 +1,4 @@
-# Adversarial Training
+# Adversarial Training for CIFAR10 Classification using CNN / ResNet (with TRADES / AROW defenses)
 
 import argparse
 import torch
@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from tqdm import tqdm
-from project.train import (DEVICE, MODEL_DICT, get_dataloaders, CHECKPOINT_DIR, evaluate, set_seed)
+from train import (DEVICE, MODEL_DICT, get_dataloaders, CHECKPOINT_DIR, evaluate, set_seed)
 from defenses.trades import trades_loss
 from defenses.arow import arow_loss
 
@@ -84,6 +84,7 @@ def main():
             optimizer.zero_grad()
 
             # Defense Loss
+            # generate adversarial examples of every batch inside loss=trades_loss() / arow_loss()
             if args.defense == "trades":
 
                 loss = trades_loss(model=model, x_natural=images, y=labels, optimizer=optimizer)
@@ -101,7 +102,6 @@ def main():
             })
 
         scheduler.step()
-
 
         # Clean Accuracy
         clean_acc = evaluate(model, test_loader)
