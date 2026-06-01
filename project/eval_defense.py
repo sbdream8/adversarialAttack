@@ -3,14 +3,14 @@
 import argparse
 import torch
 
-from train import (DEVICE, MODEL_DICT, get_dataloaders, CHECKPOINT_DIR)
+from project.train import (DEVICE, MODEL_DICT, get_dataloaders, CHECKPOINT_DIR)
 from attacks.fgsm import fgsm_attack
 from attacks.pgd import pgd_attack
 
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--model", type=str, default="resnet18")
-parser.add_argument("--defense", type=str, default="trades")
+# Argument Parser
+parser = argparse.ArgumentParser(description="Evaluate Defenses")
+parser.add_argument("--model", type=str, default="resnet18", choices=["resnet18", "cnn"])
+parser.add_argument("--defense", type=str, default="trades", choices=["trades   ", "arow"])
 args = parser.parse_args()
 
 def evaluate_attack(model, loader, attack_fn):

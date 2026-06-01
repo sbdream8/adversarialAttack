@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from tqdm import tqdm
-from train import (DEVICE, MODEL_DICT, get_dataloaders, CHECKPOINT_DIR, evaluate, set_seed)
+from project.train import (DEVICE, MODEL_DICT, get_dataloaders, CHECKPOINT_DIR, evaluate, set_seed)
 from defenses.trades import trades_loss
 from defenses.arow import arow_loss
 

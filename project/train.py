@@ -16,6 +16,8 @@ from tqdm import tqdm
 from models.resnet import ResNet18
 from models.cnn import SimpleCNN
 
+from torch.utils.data import random_split
+
 
 # Argument Parser
 def get_args():
@@ -53,25 +55,28 @@ cifar10_std = (0.2470, 0.2435, 0.2616)
 
 
 def get_dataloaders(batch_size):
-    
-    train_transform = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(cifar10_mean, cifar10_std)
-        ])
 
-    test_transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(cifar10_mean, cifar10_std)
-        ])
+    train_transform = transforms.Compose([transforms.RandomCrop(32, padding=4), transforms.RandomHorizontalFlip(), transforms.ToTensor(), transforms.Normalize(cifar10_mean, cifar10_std)])
 
-    train_dataset = torchvision.datasets.CIFAR10(root="./data", train=True, download=True, transform=train_transform)
+    test_transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(cifar10_mean, cifar10_std)])
+
+    # 같은 CIFAR10을 두 번 불러옴
+    full_train_dataset = torchvision.datasets.CIFAR10(root="./data", train=True, download=True, transform=train_transform)
+    full_val_dataset = torchvision.datasets.CIFAR10(root="./data", train=True, download=True, transform=test_transform)
+
+    # 같은 seed로 split
+    generator = torch.Generator().manual_seed(42)
+    train_dataset, _ = random_split(full_train_dataset, [45000, 5000], generator=generator)
+
+    generator = torch.Generator().manual_seed(42)
+    _, val_dataset = random_split(full_val_dataset, [45000, 5000], generator=generator)
+
     test_dataset = torchvision.datasets.CIFAR10(root="./data", train=False, download=True, transform=test_transform)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
 
-    return train_loader, test_loader
+    return train_loader, val_loader, test_loader
 
 # Models
 MODEL_DICT = {"resnet18": ResNet18, "cnn": SimpleCNN}
@@ -125,7 +130,7 @@ def main():
     print(args)
     set_seed(args.seed)
 
-    train_loader, test_loader = get_dataloaders(args.batch_size)
+    train_loader, val_loader, test_loader = get_dataloaders(args.batch_size)
     model = MODEL_DICT[args.model]().to(DEVICE)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
     scheduler = (torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[25, 40], gamma=0.1))
@@ -170,13 +175,13 @@ def main():
     for epoch in range(start_epoch, args.epochs):
 
         train_loss = train_one_epoch(model=model, loader=train_loader, optimizer=optimizer, criterion=criterion)
-        test_acc = evaluate(model, test_loader)
+        val_acc = evaluate(model, val_loader)
         scheduler.step()
 
         print(
             f"Epoch [{epoch+1}/{args.epochs}] | "
             f"Loss: {train_loss:.4f} | "
-            f"Acc: {test_acc:.2f}%"
+            f"Val Acc: {val_acc:.2f}%"
         )
 
         # Save Latest
@@ -189,9 +194,9 @@ def main():
             latest_checkpoint_path)
 
         # Save Best
-        if test_acc > best_acc:
+        if val_acc > best_acc:
 
-            best_acc = test_acc
+            best_acc = val_acc
             torch.save(model.state_dict(),best_checkpoint_path)
 
             print(
@@ -199,6 +204,13 @@ def main():
                 f"Acc: {best_acc:.2f}%"
             )
 
+    print("\nLoading best model...")
+    model.load_state_dict(torch.load( best_checkpoint_path, map_location=DEVICE))
+    test_acc = evaluate(model, test_loader)
+    print(
+            f"\nFinal Test Accuracy: "
+            f"{test_acc:.2f}%"
+            )
 
 if __name__ == "__main__":
     main()
