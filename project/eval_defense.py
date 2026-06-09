@@ -12,6 +12,7 @@ from attacks.pgd import pgd_attack
 parser = argparse.ArgumentParser(description="Evaluate Defenses")
 parser.add_argument("--model", type=str, default="resnet18", choices=["resnet18", "cnn"])
 parser.add_argument("--defense", type=str, default="trades", choices=["trades", "arow"])
+parser.add_argument("--batch_size", type=int, default=512)
 args = parser.parse_args()
 
 def evaluate_attack(model, loader, attack_fn):
@@ -39,10 +40,7 @@ def main():
     _, _, test_loader = get_dataloaders(args.batch_size)
     model = MODEL_DICT[args.model]().to(DEVICE)
 
-    checkpoint_path = (
-        CHECKPOINT_DIR /
-        f"{args.model}_{args.defense}.pth"
-    )
+    checkpoint_path = ( CHECKPOINT_DIR / f"{args.model}_{args.defense}_best.pth" )
 
     model.load_state_dict(torch.load(checkpoint_path, map_location=DEVICE))
 
@@ -54,6 +52,8 @@ def main():
         "PGD": lambda model, x, y:
             pgd_attack(model, x, y, epsilon=8/255, alpha=2/255, iters=10, device=DEVICE)
     }
+
+    print( f"\nEvaluating {args.model} ({args.defense})" )
 
     for attack_name, attack_fn in attacks.items():
 
