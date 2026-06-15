@@ -9,7 +9,9 @@ from models.cnn import SimpleCNN
 from torchvision import datasets
 from torch.utils.data import DataLoader
 
-transform_test = transforms.ToTensor()
+cifar10_mean = (0.4914, 0.4822, 0.4465)
+cifar10_std = (0.2470, 0.2435, 0.2616)
+transform_test = transforms.Compose([ transforms.ToTensor(), transforms.Normalize(cifar10_mean, cifar10_std) ])
 
 test_dataset = datasets.CIFAR10(root="./data", train=False, download=True, transform=transform_test)
 test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
@@ -48,7 +50,6 @@ def pgd_attack(model, images, labels, epsilon=8/255, alpha=2/255, num_steps=10, 
     labels = labels.to(device)
 
     adv_images = images + torch.empty_like(images).uniform_(-epsilon, epsilon)
-    adv_images = torch.clamp(adv_images, 0, 1)
 
     for _ in range(num_steps):
 
