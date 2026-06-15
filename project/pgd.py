@@ -18,10 +18,10 @@ use_cuda = True
 device = torch.device("cuda" if use_cuda else "cpu")
 
 cnn = SimpleCNN().to(device)
-cnn.load_state_dict(torch.load("checkpoints/cnn.pth", map_location=device))
+cnn.load_state_dict(torch.load("adversarial_checkpoints/cnn.pth", map_location=device))
 
 resnet = ResNet18().to(device)
-resnet.load_state_dict(torch.load("checkpoints/resnet18.pth", map_location=device))
+resnet.load_state_dict(torch.load("adversarial_checkpoints/resnet18.pth", map_location=device))
 
 def evaluate_clean(model, test_loader, device):
 
