@@ -57,12 +57,11 @@ def pgd_attack(model, images, labels, epsilon=8/255, alpha=2/255, num_steps=10, 
         outputs = model(adv_images)
         loss = F.cross_entropy(outputs, labels)
         grad = torch.autograd.grad(loss, adv_images, retain_graph=False, create_graph=False)[0]
-        adv_images = images + delta
+        adv_images = adv_images.detach() + alpha * grad.sign()
 
         # Projection
         delta = torch.clamp(adv_images - images, min=-epsilon, max=epsilon)
-
-        
+        adv_images = (images + delta).detach()        
 
     return adv_images
 
