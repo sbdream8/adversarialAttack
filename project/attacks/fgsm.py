@@ -13,4 +13,8 @@ def fgsm_attack(model, images, labels, epsilon, device):
     adv_images = (images + epsilon * images.grad.sign())
     adv_images = torch.clamp(adv_images, 0, 1)
 
+    print(images.min(), images.max())
+
+
     return adv_images.detach()
+
