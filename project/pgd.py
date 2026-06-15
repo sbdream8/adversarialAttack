@@ -16,7 +16,7 @@ test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
 
 use_cuda = True
 device = torch.device("cuda" if use_cuda else "cpu")
-CHECKPOINT_DIR = "/content/drive/MyDrive/adversarialAttack/adversarial_checkpoints"
+CHECKPOINT_DIR = "/content/drive/MyDrive/adversarial_checkpoints"
 cnn = SimpleCNN().to(device)
 cnn.load_state_dict(torch.load(f"{CHECKPOINT_DIR}/cnn_best.pth", map_location=device))
 
