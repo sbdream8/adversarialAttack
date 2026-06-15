@@ -10,11 +10,11 @@ def fgsm_attack(model, images, labels, epsilon, device):
     loss = F.cross_entropy(outputs, labels)
     model.zero_grad()
     loss.backward()
-    adv_images = (images + epsilon * images.grad.sign())
+    # adv_images = (images + epsilon * images.grad.sign())
+    std = torch.tensor([0.2470, 0.2435, 0.2616], device=device).view(1,3,1,1)
+    eps = epsilon / std
+    adv_images = images + eps * images.grad.sign()
     adv_images = torch.clamp(adv_images, 0, 1)
-
-    print(images.min(), images.max())
-
 
     return adv_images.detach()
 
