@@ -16,12 +16,12 @@ test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
 
 use_cuda = True
 device = torch.device("cuda" if use_cuda else "cpu")
-
+CHECKPOINT_DIR = "/content/drive/MyDrive/adversarialAttack/adversarial_checkpoints"
 cnn = SimpleCNN().to(device)
-cnn.load_state_dict(torch.load("adversarial_checkpoints/cnn_best.pth", map_location=device))
+cnn.load_state_dict(torch.load(f"{CHECKPOINT_DIR}/cnn_best.pth", map_location=device))
 
 resnet = ResNet18().to(device)
-resnet.load_state_dict(torch.load("adversarial_checkpoints/resnet18_best.pth", map_location=device))
+resnet.load_state_dict(torch.load(f"{CHECKPOINT_DIR}/resnet18_best.pth", map_location=device))
 
 def evaluate_clean(model, test_loader, device):
 
