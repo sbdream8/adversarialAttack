@@ -11,6 +11,8 @@ from attacks.pgd import pgd_attack
 parser = argparse.ArgumentParser(description="Evaluate Robustness")
 parser.add_argument("--model", type=str, default="resnet18", choices=["resnet18", "cnn"])
 parser.add_argument("--epsilon", type=float, default=8/255)
+parser.add_argument("--alpha", type=float, default=2/255)
+parser.add_argument("--iters", type=int, default=10)
 parser.add_argument("--batch_size", type=int, default=512)
 
 args = parser.parse_args()
@@ -57,7 +59,7 @@ def main():
             fgsm_attack(model, x, y, epsilon=args.epsilon, device=DEVICE),
 
         "PGD": lambda model, x, y:
-            pgd_attack(model, x, y, epsilon=args.epsilon, alpha=2/255, iters=10, device=DEVICE)
+            pgd_attack(model, x, y, epsilon=args.epsilon, alpha=args.alpha, iters=args.iters, device=DEVICE)
     }
 
     print(f"\nEvaluating {args.model}")
